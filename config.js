@@ -4,4 +4,4 @@
 //  Lihat panduan di SETUP.md
 // ════════════════════════════════════════════════════════════
 
-const GOOGLE_CLIENT_ID = "YOUR_CLIENT_ID_HERE.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1034591379549-j2igs6339ekhu2qqqaf6onfganbuvmm5.apps.googleusercontent.com ";
