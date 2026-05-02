@@ -737,7 +737,8 @@ let gapiInited = false, gisInited = false;
 
 function gapiLoaded() {
   gapi.load('client', async () => {
-    await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+
+
     gapiInited = true;
     maybeShowLogin();
   });
@@ -746,11 +747,16 @@ function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
+    ux_mode: 'popup',
     callback: async (resp) => {
       if (resp.error) { notify('Login gagal: ' + resp.error, 'error'); return; }
       accessToken = resp.access_token;
-      gapi.client.setToken({ access_token: accessToken });
+
       await onSignedIn();
+    },
+    error_callback: (err) => {
+      console.error('Token error:', err);
+      notify('Login gagal, coba lagi', 'error');
     }
   });
   gisInited = true;
@@ -762,11 +768,11 @@ function maybeShowLogin() {
     document.getElementById('setupBanner').classList.remove('hidden');
     return;
   }
-  // Check if token is stored
   const saved = sessionStorage.getItem('mb_token');
-  if (saved) {
+  const exp = sessionStorage.getItem('mb_token_exp');
+  if (saved && exp && Date.now() < parseInt(exp)) {
     accessToken = saved;
-    gapi.client.setToken({ access_token: saved });
+
     onSignedIn();
   }
 }
@@ -774,17 +780,27 @@ function signIn() {
   if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
     notify('Isi GOOGLE_CLIENT_ID di config.js terlebih dahulu', 'warning'); return;
   }
-  if (!gapiInited || !gisInited) { notify('Sedang memuat…', 'info'); return; }
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  if (!gapiInited || !gisInited) { notify('Sedang memuat, tunggu sebentar…', 'info'); setTimeout(signIn, 1500); return; }
+  tokenClient.requestAccessToken({ prompt: '' });
 }
 async function onSignedIn() {
-  const profile = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' });
-  const user = profile.result;
-  currentUser = { name: user.name || user.email, email: user.email, picture: user.picture };
-  sessionStorage.setItem('mb_token', accessToken);
-  updateUserUI();
-  await loadFromDrive();
-  showApp();
+  try {
+    const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!resp.ok) throw new Error('401');
+    const user = await resp.json();
+    currentUser = { name: user.name || user.email, email: user.email, picture: user.picture };
+    sessionStorage.setItem('mb_token', accessToken);
+    sessionStorage.setItem('mb_token_exp', Date.now() + 55 * 60 * 1000);
+    updateUserUI();
+    await loadFromDrive();
+    showApp();
+  } catch(e) {
+    console.error('onSignedIn error:', e);
+    sessionStorage.removeItem('mb_token');
+    notify('Sesi habis, silakan login ulang', 'error');
+  }
 }
 function signOut() {
   google.accounts.oauth2.revoke(accessToken, () => {});
@@ -796,28 +812,33 @@ function handleUserBadge() {
   if (confirm(`Keluar dari akun ${currentUser?.name}?`)) signOut();
 }
 
-// ─── DRIVE STORAGE ─────────────────────────────────────────
+// u2500u2500u2500 DRIVE STORAGE u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500
+async function driveApiFetch(path, options={}) {
+  const url = path.startsWith("http") ? path : "https://www.googleapis.com/drive/v3" + path;
+  const res = await fetch(url, { ...options, headers: { Authorization: "Bearer " + accessToken, ...(options.headers||{}) } });
+  if (res.status === 401) { sessionStorage.removeItem("mb_token"); notify("Sesi habis, login ulang", "error"); return null; }
+  return res;
+}
 async function findDataFile() {
-  const res = await gapi.client.drive.files.list({
-    q: `name='${DATA_FILENAME}' and trashed=false`,
-    fields: 'files(id,name)', spaces: 'drive'
-  });
-  const files = res.result.files;
-  return files && files.length > 0 ? files[0].id : null;
+  const res = await driveApiFetch("/files?q=" + encodeURIComponent("name=  + DATA_FILENAME +  and trashed=false") + "&fields=files(id,name)&spaces=drive");
+  if (!res) return null;
+  const d = await res.json();
+  return d.files && d.files.length > 0 ? d.files[0].id : null;
 }
 async function loadFromDrive() {
-  setSyncStatus('loading');
+  setSyncStatus("loading");
   try {
     driveFileId = await findDataFile();
     if (!driveFileId) { seedIfNeeded(); await saveToDrive(); return; }
-    const res = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
-    const d = typeof res.result === 'string' ? JSON.parse(res.result) : res.result;
+    const res = await driveApiFetch("/files/" + driveFileId + "?alt=media");
+    if (!res) { seedIfNeeded(); return; }
+    const d = await res.json();
     tasks = d.tasks || []; taskIdCounter = d.taskIdCounter || 1;
     expandedGroups = new Set(d.expanded || []);
     if (d.levels) levels = { ...levels, ...d.levels };
     populateDropdowns(); renderAll();
-    setSyncStatus('synced');
-  } catch(e) { console.error(e); setSyncStatus('error'); seedIfNeeded(); }
+    setSyncStatus("synced");
+  } catch(e) { console.error("loadFromDrive:", e); setSyncStatus("error"); seedIfNeeded(); }
 }
 async function saveToDrive() {
   if (!accessToken) return;
