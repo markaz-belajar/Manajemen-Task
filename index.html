@@ -730,7 +730,7 @@ function handleConfigMissing() {
 if (typeof GOOGLE_CLIENT_ID === 'undefined') window.GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
 
 // ─── GOOGLE AUTH & DRIVE ───────────────────────────────────
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
 const DATA_FILENAME = 'markaz-belajar-data.json';
 let tokenClient, accessToken = null, driveFileId = null;
 let gapiInited = false, gisInited = false;
