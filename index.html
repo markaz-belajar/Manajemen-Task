@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markaz Belajar — Sistem Manajemen Tugas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg:           #0d0d0d;
+  --bg-2:         #141414;
+  --bg-3:         #1a1a1a;
+  --bg-4:         #202020;
+  --bg-hover:     #252525;
+  --border:       rgba(255,255,255,.08);
+  --border-2:     rgba(255,255,255,.13);
+  --text:         #e8e8e6;
+  --text-2:       #8a8a85;
+  --text-3:       #525250;
+  --accent:       #3b7dff;
+  --accent-dim:   rgba(59,125,255,.15);
+  --accent-border:rgba(59,125,255,.35);
+  --green:        #22c55e;
+  --green-dim:    rgba(34,197,94,.12);
+  --green-border: rgba(34,197,94,.3);
+  --amber:        #f59e0b;
+  --amber-dim:    rgba(245,158,11,.12);
+  --red:          #ef4444;
+  --red-dim:      rgba(239,68,68,.1);
+  --radius-xs:    4px;
+  --radius-sm:    6px;
+  --radius:       9px;
+  --radius-lg:    13px;
+  --radius-xl:    18px;
+  --shadow:       0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg:    0 12px 40px rgba(0,0,0,.6);
+  --panel-w:      300px;
+  --header-h:     52px;
+  --font: 'Geist', 'DM Sans', system-ui, sans-serif;
+  --mono: 'Geist Mono', 'DM Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:99px}
+
+/* ── LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── HEADER ── */
+.header{
+  height:var(--header-h);
+  background:var(--bg-2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 16px;
+  gap:12px;
+  position:relative;
+  z-index:50;
+  flex-shrink:0;
+}
+.header-logo{display:flex;align-items:center;gap:9px}
+.logo-icon{
+  width:26px;height:26px;border-radius:7px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.logo-icon svg{width:13px;height:13px;color:#fff}
+.logo-name{font-size:13.5px;font-weight:600;letter-spacing:-.02em}
+.logo-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+.header-space{flex:1}
+.header-actions{display:flex;align-items:center;gap:6px}
+
+/* ── BODY ── */
+.body{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* ── SLIDE PANEL ── */
+.panel-trigger{
+  position:fixed;
+  left:0; top:50%;
+  transform:translateY(-50%);
+  z-index:200;
+  display:flex;flex-direction:column;gap:4px;
+  padding:6px 4px;
+  background:var(--bg-3);
+  border:1px solid var(--border);
+  border-left:none;
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  transition:transform .2s;
+}
+.panel-trigger:hover{transform:translateY(-50%) translateX(2px)}
+.panel-btn{
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-xs);
+  cursor:pointer;
+  border:none;background:transparent;
+  color:var(--text-2);
+  transition:all .15s;
+  position:relative;
+}
+.panel-btn:hover{background:var(--bg-hover);color:var(--text)}
+.panel-btn.active{background:var(--accent-dim);color:var(--accent)}
+.panel-btn svg{width:14px;height:14px}
+.panel-btn .ptip{
+  pointer-events:none;
+  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:var(--bg-4);border:1px solid var(--border-2);
+  color:var(--text);padding:4px 8px;border-radius:var(--radius-xs);
+  font-size:11px;white-space:nowrap;opacity:0;transition:opacity .15s;
+}
+.panel-btn:hover .ptip{opacity:1}
+
+/* slide panel drawer */
+.slide-panel{
+  position:fixed;
+  left:0;top:var(--header-h);
+  height:calc(100vh - var(--header-h));
+  width:var(--panel-w);
+  background:var(--bg-2);
+  border-right:1px solid var(--border);
+  z-index:150;
+  transform:translateX(calc(-1 * var(--panel-w)));
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  box-shadow:var(--shadow-lg);
+}
+.slide-panel.open{transform:translateX(0)}
+.panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.panel-title{font-size:13px;font-weight:600}
+.panel-body{flex:1;overflow-y:auto;padding:16px}
+.panel-section-label{
+  font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-3);
+  margin-bottom:8px;
+}
+
+/* ── MAIN CONTENT ── */
+.main{
+  flex:1;
+  overflow-y:auto;
+  padding:20px 20px 20px 20px;
+  display:flex;flex-direction:column;gap:16px;
+  transition:padding-left .22s;
+}
+.main.shifted{padding-left:calc(var(--panel-w) + 20px)}
+
+/* ── COMPONENTS ── */
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:6px 12px;
+  border-radius:var(--radius-sm);
+  font-family:var(--font);font-size:12.5px;font-weight:500;
+  border:none;cursor:pointer;
+  transition:background .12s,opacity .12s,transform .08s;
+  white-space:nowrap;line-height:1;text-decoration:none;
+}
+.btn:active{transform:scale(.97)}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3370e8}
+.btn-secondary{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg-4);color:var(--text)}
+.btn-ghost{background:transparent;color:var(--text-2)}
+.btn-ghost:hover{background:var(--bg-3);color:var(--text)}
+.btn-danger{background:transparent;color:var(--red)}
+.btn-danger:hover{background:var(--red-dim)}
+.btn-icon{padding:6px}
+.btn-sm{padding:4px 9px;font-size:11.5px}
+.btn-sm svg{width:11px;height:11px}
+.btn-full{width:100%}
+.btn[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+/* Fields */
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--text-2);margin-bottom:5px}
+.input{
+  width:100%;padding:7px 10px;
+  background:var(--bg-3);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-family:var(--font);font-size:12.5px;color:var(--text);
+  outline:none;transition:border-color .12s,box-shadow .12s;
+  appearance:none;
+}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,125,255,.12)}
+.input::placeholder{color:var(--text-3)}
+select.input{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23525250' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;cursor:pointer;
+}
+option{background:var(--bg-3)}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat-card{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:14px 16px;
+}
+.stat-value{font-size:26px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.stat-label{font-size:11px;color:var(--text-3);margin-top:3px}
+.sv-green{color:var(--green)}
+.sv-blue{color:var(--accent)}
+.sv-amber{color:var(--amber)}
+
+/* Filter bar */
+.filter-bar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px 12px;
+}
+.filter-bar svg{width:13px;height:13px;color:var(--text-3);flex-shrink:0}
+.filter-bar .input{background:transparent;border:none;padding:0;font-size:13px;box-shadow:none}
+.filter-bar .input:focus{box-shadow:none}
+.filter-sep{width:1px;height:16px;background:var(--border);flex-shrink:0}
+.filter-select{background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:3px 22px 3px 7px;font-family:var(--font);font-size:11.5px;color:var(--text-2);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23525250' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center}
+.filter-count{font-size:11px;color:var(--text-3);font-family:var(--mono);flex-shrink:0;white-space:nowrap;margin-left:auto}
+
+/* Group cards */
+.task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:start}
+.group-card{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;
+  transition:border-color .15s;
+}
+.group-card:hover{border-color:var(--border-2)}
+.group-header{
+  padding:13px 14px 11px;cursor:pointer;
+  user-select:none;transition:background .1s;
+}
+.group-header:hover{background:var(--bg-3)}
+.g-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px}
+.g-title{font-size:12.5px;font-weight:600;line-height:1.35;flex:1;color:var(--text)}
+.g-edit-btn{
+  width:22px;height:22px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--text-3);opacity:0;transition:all .12s;
+}
+.group-card:hover .g-edit-btn{opacity:1}
+.g-edit-btn:hover{background:var(--bg-4);color:var(--text)}
+.g-edit-btn svg{width:11px;height:11px}
+.g-counter{font-size:11px;font-family:var(--mono);color:var(--text-3);flex-shrink:0;margin-top:2px}
+.g-progress{display:flex;align-items:center;gap:8px}
+.pbar{flex:1;height:3px;background:var(--bg-4);border-radius:99px;overflow:hidden}
+.pfill{height:100%;border-radius:99px;transition:width .5s ease}
+.ppct{font-size:10px;font-family:var(--mono);color:var(--text-3);min-width:28px;text-align:right}
+.g-chevron{width:13px;height:13px;color:var(--text-3);transition:transform .2s;flex-shrink:0;margin-top:3px}
+.g-chevron.open{transform:rotate(180deg)}
+
+/* Task items */
+.task-list{border-top:1px solid var(--border)}
+.task-item{
+  padding:9px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{background:var(--bg-3)}
+.task-item.expanded{background:var(--bg-3)}
+.task-row{display:flex;align-items:flex-start;gap:8px}
+.task-chk{
+  width:15px;height:15px;border-radius:4px;
+  border:1.5px solid var(--border-2);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:2px;
+  background:transparent;transition:all .12s;
+}
+.task-chk.done{background:var(--green);border-color:var(--green)}
+.task-chk.done svg{display:block}
+.task-chk svg{display:none;width:9px;height:9px;color:#fff}
+.task-name{font-size:12.5px;line-height:1.45;flex:1;color:var(--text)}
+.task-name.done{color:var(--text-3);text-decoration:line-through}
+
+/* Task detail expand */
+.task-detail{
+  display:none;
+  flex-direction:column;gap:8px;
+  padding:9px 14px 11px 37px;
+  border-top:1px solid var(--border);
+  background:var(--bg-2);
+}
+.task-item.expanded .task-detail{display:flex}
+.task-meta{
+  font-size:11px;color:var(--text-3);
+  display:flex;align-items:center;gap:5px;
+}
+.task-meta svg{width:10px;height:10px;flex-shrink:0}
+
+/* File upload area */
+.upload-area{
+  border:1.5px dashed var(--border-2);
+  border-radius:var(--radius-sm);
+  padding:10px 12px;
+  display:flex;align-items:center;gap:9px;
+  cursor:pointer;transition:all .15s;
+  position:relative;overflow:hidden;
+}
+.upload-area:hover{border-color:var(--accent);background:var(--accent-dim)}
+.upload-area input[type="file"]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;
+}
+.upload-icon{width:28px;height:28px;border-radius:var(--radius-xs);background:var(--bg-4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.upload-icon svg{width:13px;height:13px;color:var(--text-2)}
+.upload-text{font-size:12px;color:var(--text-2)}
+.upload-hint{font-size:10.5px;color:var(--text-3);margin-top:1px}
+
+/* Attached file pill */
+.file-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;
+  background:var(--green-dim);border:1px solid var(--green-border);
+  border-radius:var(--radius-sm);
+  font-size:11.5px;color:var(--text);
+}
+.file-pill svg{width:11px;height:11px;color:var(--green);flex-shrink:0}
+.file-pill-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+.file-pill-actions{display:flex;gap:3px;margin-left:auto}
+
+/* Task action row */
+.task-acts{display:flex;align-items:center;gap:4px}
+
+/* ── MODALS ── */
+.overlay{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--bg-2);border:1px solid var(--border-2);
+  border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-lg);
+  width:100%;max-width:420px;
+  animation:modalIn .18s ease;
+}
+.modal-lg{max-width:780px}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 18px 13px;border-bottom:1px solid var(--border);
+}
+.modal-title{font-size:13.5px;font-weight:600}
+.modal-body{padding:18px}
+.modal-foot{
+  display:flex;align-items:center;justify-content:flex-end;gap:7px;
+  padding:12px 18px;border-top:1px solid var(--border);
+}
+
+/* ── AUTH SCREEN ── */
+.auth-screen{
+  position:fixed;inset:0;z-index:500;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:0;
+}
+.auth-card{
+  background:var(--bg-2);border:1px solid var(--border-2);
+  border-radius:var(--radius-xl);
+  padding:36px 40px;
+  width:360px;
+  text-align:center;
+  box-shadow:var(--shadow-lg);
+}
+.auth-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;
+}
+.auth-icon svg{width:24px;height:24px;color:#fff}
+.auth-title{font-size:18px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--text-2);margin-bottom:24px;line-height:1.5}
+.btn-google{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:10px 16px;
+  background:var(--bg-3);border:1px solid var(--border-2);
+  border-radius:var(--radius);font-family:var(--font);
+  font-size:13px;font-weight:500;color:var(--text);
+  cursor:pointer;transition:all .15s;
+}
+.btn-google:hover{background:var(--bg-4);border-color:var(--accent-border)}
+.btn-google svg{width:18px;height:18px;flex-shrink:0}
+.auth-note{font-size:11px;color:var(--text-3);margin-top:16px;line-height:1.5}
+
+/* Setup notice */
+.setup-banner{
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);
+  border-radius:var(--radius);padding:12px 14px;
+  font-size:12px;color:var(--amber);line-height:1.6;
+  margin-bottom:16px;
+}
+.setup-banner code{
+  font-family:var(--mono);font-size:11px;
+  background:rgba(245,158,11,.15);padding:1px 5px;border-radius:3px;
+}
+.setup-banner a{color:var(--accent);text-decoration:none}
+.setup-banner a:hover{text-decoration:underline}
+
+/* Progress repo */
+.prog-search{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.prog-list{max-height:60vh;overflow-y:auto}
+.prog-group-head{
+  padding:7px 16px;background:var(--bg-3);
+  font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);
+  display:flex;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.prog-item{
+  padding:10px 16px;display:flex;align-items:center;gap:12px;
+  transition:background .1s;border-bottom:1px solid var(--border);
+}
+.prog-item:last-child{border-bottom:none}
+.prog-item:hover{background:var(--bg-3)}
+.prog-item-text{font-size:12.5px;flex:1}
+.prog-item-meta{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* Toast */
+.toast{
+  position:fixed;top:14px;right:14px;z-index:999;
+  background:var(--bg-4);border:1px solid var(--border-2);
+  color:var(--text);padding:9px 14px;border-radius:var(--radius);
+  font-size:12.5px;font-weight:500;
+  box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:8px;
+  animation:toastIn .18s ease;max-width:320px;
+}
+.toast-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.toast.success .toast-dot{background:var(--green)}
+.toast.warning .toast-dot{background:var(--amber)}
+.toast.error .toast-dot{background:var(--red)}
+.toast.info .toast-dot{background:var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-6px)}}
+
+/* Upload progress */
+.upload-progress{
+  height:3px;background:var(--bg-4);border-radius:99px;overflow:hidden;margin-top:4px;display:none;
+}
+.upload-progress.active{display:block}
+.upload-bar{height:100%;background:var(--accent);border-radius:99px;transition:width .2s;width:0%}
+
+/* Loading spinner */
+.spinner{
+  width:16px;height:16px;
+  border:2px solid var(--border-2);
+  border-top-color:var(--accent);
+  border-radius:50%;animation:spin .6s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+.mono{font-family:var(--mono)}
+
+/* User badge */
+.user-badge{
+  display:flex;align-items:center;gap:7px;
+  padding:4px 10px 4px 6px;
+  background:var(--bg-3);border:1px solid var(--border);
+  border-radius:999px;cursor:pointer;transition:all .12s;
+}
+.user-badge:hover{border-color:var(--border-2);background:var(--bg-4)}
+.u-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:600;flex-shrink:0;
+}
+.u-name{font-size:12px;font-weight:500}
+
+/* responsive */
+@media(max-width:680px){
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+  .task-grid{grid-template-columns:1fr}
+  .main{padding:14px}
+  .main.shifted{padding-left:calc(var(--panel-w) + 14px)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════ -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="auth-title">Markaz Belajar</div>
+    <div class="auth-sub">Sistem manajemen tugas & repositori dokumen internal</div>
+
+    <div id="setupBanner" class="setup-banner hidden">
+      ⚠️ Sebelum digunakan, isi <code>GOOGLE_CLIENT_ID</code> di file <code>config.js</code>.<br>
+      Lihat panduan lengkap di <a href="SETUP.md" target="_blank">SETUP.md</a>
+    </div>
+
+    <button class="btn-google" id="loginBtn" onclick="signIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Masuk dengan Google
+    </button>
+    <div class="auth-note">Data disimpan di Google Drive pribadi Anda.<br>Tidak ada server pihak ketiga.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     EDIT TASK MODAL
+═══════════════════════════════════════ -->
+<div id="editTaskModal" class="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Edit Tugas</div>
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="closeModal('editTaskModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label>Nama Tugas</label><input id="etName" type="text" class="input"></div>
+      <div class="field"><label>Kelompok</label><select id="etLevel" class="input"></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('editTaskModal')">Batal</button>
+      <button class="btn btn-primary" onclick="saveEditTask()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     EDIT GROUP MODAL
+═══════════════════════════════════════ -->
+<div id="editGroupModal" class="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Ubah Nama Kelompok</div>
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="closeModal('editGroupModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Nama Kelompok</label><input id="egName" type="text" class="input"></div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:8px">Perubahan ini mempengaruhi semua tugas di kelompok ini.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('editGroupModal')">Batal</button>
+      <button class="btn btn-primary" onclick="saveEditGroup()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PROGRESS / REPOSITORY MODAL
+═══════════════════════════════════════ -->
+<div id="repoModal" class="overlay">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Repositori Dokumen</div>
+        <div id="repoSubtitle" style="font-size:11px;color:var(--text-3);margin-top:2px">Tugas selesai dengan dokumen terlampir</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="printRepo()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+          Cetak
+        </button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="closeModal('repoModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="prog-search">
+      <input id="repoSearch" type="text" class="input" placeholder="Cari tugas atau kelompok…" oninput="renderRepo()" style="flex:1">
+      <select id="repoUserFilter" class="input" style="width:150px;flex:none" onchange="renderRepo()">
+        <option value="all">Semua Pengguna</option>
+      </select>
+    </div>
+    <div id="repoList" class="prog-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════ -->
+<div class="app" id="appShell" style="display:none">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">Markaz Belajar</div>
+        <div class="logo-sub">Sistem Manajemen Tugas</div>
+      </div>
+    </div>
+    <div class="header-space"></div>
+    <div class="header-actions">
+      <div id="syncStatus" style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px"></div>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('repoModal');renderRepo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+        Repositori
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="printReport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+        Cetak
+      </button>
+      <div class="user-badge" onclick="handleUserBadge()">
+        <div id="uAvatar" class="u-avatar">?</div>
+        <div id="uName" class="u-name">—</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SLIDE PANEL TRIGGER -->
+  <div class="panel-trigger" id="panelTrigger">
+    <button class="panel-btn" id="addTaskBtn" onclick="togglePanel()" title="">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="ptip">Tambah Tugas</span>
+    </button>
+  </div>
+
+  <!-- SLIDE PANEL -->
+  <div class="slide-panel" id="slidePanel">
+    <div class="panel-header">
+      <div class="panel-title">Tambah Tugas Baru</div>
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="togglePanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="field">
+        <label>Nama Tugas</label>
+        <input id="taskInput" type="text" class="input" placeholder="Deskripsikan tugas…" onkeypress="if(event.key==='Enter')addTask()">
+      </div>
+      <div class="field">
+        <label>Kelompok</label>
+        <select id="taskLevel" class="input"></select>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="addTask()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Tambah Tugas
+      </button>
+
+      <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+      <div class="panel-section-label">Kelompok Baru</div>
+      <div class="field">
+        <label>Nama Kelompok</label>
+        <input id="groupInput" type="text" class="input" placeholder="Nama kelompok baru…" onkeypress="if(event.key==='Enter')addGroup()">
+      </div>
+      <button class="btn btn-secondary btn-full" onclick="addGroup()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Buat Kelompok
+      </button>
+
+      <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+      <button class="btn btn-danger btn-sm" style="width:100%;justify-content:flex-start" onclick="resetData()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Reset Semua Data
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div id="statDone" class="stat-value sv-green">0</div>
+        <div class="stat-label">Tugas Selesai</div>
+      </div>
+      <div class="stat-card">
+        <div id="statTotal" class="stat-value sv-blue">0</div>
+        <div class="stat-label">Total Tugas</div>
+      </div>
+      <div class="stat-card">
+        <div id="statPending" class="stat-value sv-amber">0</div>
+        <div class="stat-label">Belum Selesai</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" type="text" class="input" placeholder="Cari tugas…" oninput="applyFilters()">
+      <div class="filter-sep"></div>
+      <select id="statusFilter" class="filter-select" onchange="applyFilters()">
+        <option value="all">Semua Status</option>
+        <option value="active">Belum Selesai</option>
+        <option value="done">Selesai</option>
+      </select>
+      <select id="levelFilter" class="filter-select" onchange="applyFilters()"></select>
+      <span id="filterCount" class="filter-count"></span>
+    </div>
+
+    <!-- Task Grid -->
+    <div id="taskGrid" class="task-grid"></div>
+    <div id="emptyState" class="hidden" style="text-align:center;padding:48px;color:var(--text-3);font-size:13px">
+      Tidak ada tugas yang sesuai filter.
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CONFIG + SCRIPTS
+═══════════════════════════════════════ -->
+<script src="config.js" onerror="handleConfigMissing()"></script>
+<script>
+// ─── CONFIG FALLBACK ───────────────────────────────────────
+function handleConfigMissing() {
+  window.GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+  console.warn('config.js not found, using placeholder');
+}
+if (typeof GOOGLE_CLIENT_ID === 'undefined') window.GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+
+// ─── GOOGLE AUTH & DRIVE ───────────────────────────────────
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DATA_FILENAME = 'markaz-belajar-data.json';
+let tokenClient, accessToken = null, driveFileId = null;
+let gapiInited = false, gisInited = false;
+
+function gapiLoaded() {
+  gapi.load('client', async () => {
+    await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+    gapiInited = true;
+    maybeShowLogin();
+  });
+}
+function gisLoaded() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { notify('Login gagal: ' + resp.error, 'error'); return; }
+      accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+      await onSignedIn();
+    }
+  });
+  gisInited = true;
+  maybeShowLogin();
+}
+function maybeShowLogin() {
+  if (!gapiInited || !gisInited) return;
+  if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    document.getElementById('setupBanner').classList.remove('hidden');
+    return;
+  }
+  // Check if token is stored
+  const saved = sessionStorage.getItem('mb_token');
+  if (saved) {
+    accessToken = saved;
+    gapi.client.setToken({ access_token: saved });
+    onSignedIn();
+  }
+}
+function signIn() {
+  if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    notify('Isi GOOGLE_CLIENT_ID di config.js terlebih dahulu', 'warning'); return;
+  }
+  if (!gapiInited || !gisInited) { notify('Sedang memuat…', 'info'); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+async function onSignedIn() {
+  const profile = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' });
+  const user = profile.result;
+  currentUser = { name: user.name || user.email, email: user.email, picture: user.picture };
+  sessionStorage.setItem('mb_token', accessToken);
+  updateUserUI();
+  await loadFromDrive();
+  showApp();
+}
+function signOut() {
+  google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null; sessionStorage.removeItem('mb_token');
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+function handleUserBadge() {
+  if (confirm(`Keluar dari akun ${currentUser?.name}?`)) signOut();
+}
+
+// ─── DRIVE STORAGE ─────────────────────────────────────────
+async function findDataFile() {
+  const res = await gapi.client.drive.files.list({
+    q: `name='${DATA_FILENAME}' and trashed=false`,
+    fields: 'files(id,name)', spaces: 'drive'
+  });
+  const files = res.result.files;
+  return files && files.length > 0 ? files[0].id : null;
+}
+async function loadFromDrive() {
+  setSyncStatus('loading');
+  try {
+    driveFileId = await findDataFile();
+    if (!driveFileId) { seedIfNeeded(); await saveToDrive(); return; }
+    const res = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
+    const d = typeof res.result === 'string' ? JSON.parse(res.result) : res.result;
+    tasks = d.tasks || []; taskIdCounter = d.taskIdCounter || 1;
+    expandedGroups = new Set(d.expanded || []);
+    if (d.levels) levels = { ...levels, ...d.levels };
+    populateDropdowns(); renderAll();
+    setSyncStatus('synced');
+  } catch(e) { console.error(e); setSyncStatus('error'); seedIfNeeded(); }
+}
+async function saveToDrive() {
+  if (!accessToken) return;
+  setSyncStatus('saving');
+  const body = JSON.stringify({ tasks, taskIdCounter, expanded: [...expandedGroups], levels });
+  try {
+    if (!driveFileId) {
+      const meta = { name: DATA_FILENAME, mimeType: 'application/json' };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+      form.append('file', new Blob([body], { type: 'application/json' }));
+      const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken }, body: form
+      });
+      const j = await r.json(); driveFileId = j.id;
+    } else {
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body
+      });
+    }
+    setSyncStatus('synced');
+  } catch(e) { console.error(e); setSyncStatus('error'); }
+}
+
+// Upload file to Drive and return the web link
+async function uploadFileToDrive(file, taskId) {
+  if (!accessToken) { notify('Belum login', 'error'); return null; }
+  const form = new FormData();
+  const meta = { name: `[MB-${taskId}] ${file.name}`, mimeType: file.type };
+  form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+  form.append('file', file);
+  showUploadProgress(taskId, 30);
+  try {
+    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + accessToken }, body: form
+    });
+    if (!r.ok) throw new Error('Upload failed');
+    const j = await r.json();
+    // Make it readable by anyone with link
+    await fetch(`https://www.googleapis.com/drive/v3/files/${j.id}/permissions`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    showUploadProgress(taskId, 100);
+    return { id: j.id, name: j.name, link: j.webViewLink };
+  } catch(e) { console.error(e); notify('Upload gagal', 'error'); return null; }
+}
+
+function showUploadProgress(taskId, pct) {
+  const el = document.querySelector(`[data-up-progress="${taskId}"]`);
+  if (!el) return;
+  el.classList.add('active');
+  el.querySelector('.upload-bar').style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => el.classList.remove('active'), 800);
+}
+
+// ─── SYNC STATUS ───────────────────────────────────────────
+function setSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  const icons = {
+    loading: `<div class="spinner"></div><span>Memuat…</span>`,
+    saving:  `<div class="spinner"></div><span>Menyimpan…</span>`,
+    synced:  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg><span style="color:var(--text-3)">Tersimpan di Drive</span>`,
+    error:   `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span style="color:var(--amber)">Gagal sinkron</span>`,
+  };
+  el.innerHTML = icons[state] || '';
+}
+
+// ─── DATA ──────────────────────────────────────────────────
+let tasks = [], taskIdCounter = 1;
+let currentUser = null;
+let expandedGroups = new Set(), expandedTasks = new Set();
+
+let levels = {
+  1:"A.1 - Fondasi & Legalitas",
+  7:"A.2 - Legalitas Dasar Usaha",
+  15:"A.3 - Perjanjian & Dokumen Operasional",
+  16:"A.4 - Perlindungan Brand",
+  2:"B.1 - Desain Program Preschool",
+  17:"B.2 - Desain Program Elementary",
+  3:"C.1 - Rekrutmen Guru",
+  18:"C.2 - Pelatihan Guru",
+  4:"D - Sistem Internal",
+  5:"E.1 - Marketing",
+  19:"E.2 - Kolaborasi",
+  6:"F - Monitoring & Evaluasi"
+};
+
+let filters = { search:'', status:'all', level:'all' };
+
+function levelName(id) { return levels[id] || ('Kelompok '+id); }
+function levelOrder() { return Object.keys(levels).map(Number).sort((a,b)=>levelName(a).localeCompare(levelName(b))); }
+
+// ─── SEED ──────────────────────────────────────────────────
+function seedIfNeeded() {
+  if (tasks.length > 0) return;
+  const p = (text, level) => tasks.push({ id:taskIdCounter++, text, level, file:null, completed:false, completedBy:null, completedAt:null });
+  p("Profil & Visi–Misi Bimbel",1); p("Pendaftaran Merek Dagang",16);
+  p("Tetapkan Target akhir setiap program Preschool",2); p("Buat Breakdown materi per bulan/minggu/sesi Preschool",2);
+  p("Susun Modul atau Silabus Pembelajaran Preschool",2); p("Tentukan Metode & Pendekatan Belajar Preschool",2);
+  p("Rancangan Program (Tahfidz) Preschool",2); p("Rancangan Program (Calistung) Preschool",2); p("Rancangan Program (English) Preschool",2);
+  p("Tentukan Durasi setiap program Elementary",17); p("Tetapkan Target akhir setiap program Elementary",17);
+  p("Buat Breakdown materi per bulan/minggu/sesi Elementary",17); p("Susun Modul atau Silabus Pembelajaran Elementary",17);
+  p("Rancangan Program (MAPEL) Elementary",17); p("Rancangan Program (Matematika) Elementary",17);
+  p("Rancangan Program (English) Elementary",17); p("Rancangan Program (Tahfidz) Elementary",17);
+  p("SOP Rekrutmen Tutor",3); p("Susun Kriteria Tutor",3); p("Rekrut Guru Multitugas",3); p("Rekrut Guru Reguler",3);
+  p("Sistem Pelatihan & Pendampingan Tutor",18); p("Membuat Sistem KPI",18);
+  p("Sistem Pembagian Honor Guru",18); p("Program Orientasi Guru Baru",18);
+  p("Absensi Guru",4); p("Absensi Murid",4); p("Sistem Keuangan Dasar (laporan bulanan)",4);
+  p("Sistem Inventaris Barang",4); p("SOP Guru Sebelum/Sesudah Mengajar (Reguler)",4);
+  p("Media Sosial (IG/FB/TikTok)",5); p("Brosur & Poster Promosi",5); p("Paket Promo",5);
+  p("Testimoni Murid/Ortu",5); p("SOP Selles – After Sales Service & Retensi Siswa/Mitra",5);
+  p("SOP Selles – Follow Up & Closing",5); p("SOP Selles – Prospecting",5);
+  p("SOP Selles – Presentasi & Promosi Program",5); p("SOP Selles – Referral & Networking",5);
+  p("Jalin Kerja Sama dengan Sekolah SD",19); p("Jalin Kerja Sama dengan Sekolah TK",19); p("Partnership dengan Komunitas Lokal",19);
+  p("Evaluasi Program Belajar Tiap 3 Bulan",6); p("Buat Forum Diskusi Tutor Bulanan",6);
+  p("Kembangkan Sistem Feedback dari Orang Tua",6); p("Review & Update Kurikulum Secara Berkala",6);
+  populateDropdowns(); renderAll();
+}
+
+// ─── ACTIONS ───────────────────────────────────────────────
+function addTask() {
+  const text = document.getElementById('taskInput').value.trim();
+  if (!text) { notify('Masukkan nama tugas', 'warning'); return; }
+  const level = parseInt(document.getElementById('taskLevel').value);
+  tasks.push({ id:taskIdCounter++, text, level, file:null, completed:false, completedBy:null, completedAt:null });
+  document.getElementById('taskInput').value = '';
+  saveToDrive(); renderAll();
+  notify(`"${text}" ditambahkan`, 'success');
+}
+function addGroup() {
+  const name = document.getElementById('groupInput').value.trim();
+  if (!name) { notify('Masukkan nama kelompok', 'warning'); return; }
+  if (Object.values(levels).some(n => n.toLowerCase()===name.toLowerCase())) { notify('Nama sudah ada', 'warning'); return; }
+  const newId = Math.max(...Object.keys(levels).map(Number)) + 1;
+  levels[newId] = name;
+  document.getElementById('groupInput').value = '';
+  populateDropdowns(); saveToDrive(); renderAll();
+  notify(`Kelompok "${name}" dibuat`, 'success');
+}
+
+let editingTaskId=null, editingGroupId=null;
+function editTask(id) {
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  editingTaskId = id;
+  document.getElementById('etName').value = t.text;
+  document.getElementById('etLevel').innerHTML = levelOrder().map(lid=>`<option value="${lid}" ${lid===t.level?'selected':''}>${levelName(lid)}</option>`).join('');
+  openModal('editTaskModal');
+}
+function saveEditTask() {
+  const t = tasks.find(x=>x.id===editingTaskId); if(!t) return;
+  const name = document.getElementById('etName').value.trim();
+  if(!name) { notify('Nama tidak boleh kosong','warning'); return; }
+  t.text=name; t.level=parseInt(document.getElementById('etLevel').value);
+  saveToDrive(); renderAll(); closeModal('editTaskModal');
+  notify('Tugas diperbarui','success');
+}
+function editGroup(lid) {
+  editingGroupId=lid;
+  document.getElementById('egName').value=levelName(lid);
+  openModal('editGroupModal');
+}
+function saveEditGroup() {
+  const name=document.getElementById('egName').value.trim();
+  if(!name) { notify('Nama tidak boleh kosong','warning'); return; }
+  levels[editingGroupId]=name;
+  populateDropdowns(); saveToDrive(); renderAll(); closeModal('editGroupModal');
+  notify('Kelompok diperbarui','success');
+}
+function deleteTask(id) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  if(!confirm(`Hapus tugas "${t.text}"?`)) return;
+  tasks=tasks.filter(x=>x.id!==id);
+  saveToDrive(); renderAll(); notify('Tugas dihapus','warning');
+}
+
+async function handleFileUpload(taskId, input) {
+  const file = input.files[0]; if(!file) return;
+  notify('Mengunggah ke Google Drive…','info');
+  const result = await uploadFileToDrive(file, taskId);
+  if (!result) return;
+  const t = tasks.find(x=>x.id===taskId); if(!t) return;
+  t.file = result;
+  saveToDrive(); renderAll();
+  notify(`"${file.name}" berhasil diunggah`,'success');
+}
+
+async function completeTask(id) {
+  const t=tasks.find(x=>x.id===id); if(!t||t.completed) return;
+  if(!t.file) { notify('Upload dokumen terlebih dahulu','warning'); return; }
+  t.completed=true; t.completedBy=currentUser.name; t.completedAt=new Date();
+  saveToDrive(); renderAll(); notify('Tugas ditandai selesai ✓','success');
+}
+function undoTask(id) {
+  const t=tasks.find(x=>x.id===id); if(!t||!t.completed) return;
+  t.completed=false; t.completedBy=null; t.completedAt=null;
+  saveToDrive(); renderAll(); notify('Status dibatalkan','warning');
+}
+function openFile(link) { if(link) window.open(link,'_blank'); }
+function resetData() {
+  if(!confirm('Reset SEMUA data? Ini juga akan menghapus file data di Google Drive Anda.')) return;
+  tasks=[]; taskIdCounter=1; expandedGroups=new Set(); expandedTasks=new Set();
+  driveFileId=null;
+  saveToDrive(); renderAll(); notify('Data direset','warning');
+}
+
+// ─── RENDER ────────────────────────────────────────────────
+function populateDropdowns() {
+  const opts = levelOrder().map(id=>`<option value="${id}">${levelName(id)}</option>`).join('');
+  document.getElementById('taskLevel').innerHTML = opts;
+  document.getElementById('levelFilter').innerHTML = '<option value="all">Semua Kelompok</option>'+opts;
+  const ruf = document.getElementById('repoUserFilter');
+  if(ruf) {
+    const names = [...new Set(tasks.filter(t=>t.completedBy).map(t=>t.completedBy))];
+    ruf.innerHTML = '<option value="all">Semua Pengguna</option>' + names.map(n=>`<option>${n}</option>`).join('');
+  }
+}
+function applyFilters() {
+  filters.search=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  filters.status=document.getElementById('statusFilter').value;
+  filters.level=document.getElementById('levelFilter').value;
+  renderAll();
+}
+
+function renderAll() {
+  // stats
+  const totalDone = tasks.filter(t=>t.completed).length;
+  document.getElementById('statDone').textContent = totalDone;
+  document.getElementById('statTotal').textContent = tasks.length;
+  document.getElementById('statPending').textContent = tasks.filter(t=>!t.completed).length;
+  // filter
+  const filtered = tasks.filter(t=>{
+    if(filters.status==='active'&&t.completed) return false;
+    if(filters.status==='done'&&!t.completed) return false;
+    if(filters.level!=='all'&&String(t.level)!==filters.level) return false;
+    if(filters.search&&!t.text.toLowerCase().includes(filters.search)) return false;
+    return true;
+  });
+  document.getElementById('filterCount').textContent =
+    (filters.status==='all'&&filters.level==='all'&&!filters.search) ? `${tasks.length} tugas` : `${filtered.length}/${tasks.length}`;
+
+  const byLevel={};
+  filtered.forEach(t=>{ (byLevel[t.level]=byLevel[t.level]||[]).push(t); });
+  const visible = levelOrder().filter(l=>byLevel[l]);
+  const grid = document.getElementById('taskGrid');
+  if(!visible.length) { grid.innerHTML=''; document.getElementById('emptyState').classList.remove('hidden'); return; }
+  document.getElementById('emptyState').classList.add('hidden');
+
+  grid.innerHTML = visible.map(l=>{
+    const arr=byLevel[l];
+    const active=arr.filter(t=>!t.completed), done=arr.filter(t=>t.completed);
+    const total=arr.length, doneN=done.length, pct=total?Math.round(doneN/total*100):0;
+    const isOpen=expandedGroups.has(l);
+    const fill = pct===100?'#22c55e':pct>=60?'#3b7dff':pct>=30?'#f59e0b':'#525250';
+    return `<div class="group-card${isOpen?'':' group-collapsed'}" data-level="${l}">
+      <div class="group-header" onclick="toggleGroup(${l})">
+        <div class="g-top">
+          <div class="g-title">${levelName(l)}</div>
+          <button class="g-edit-btn" onclick="event.stopPropagation();editGroup(${l})" title="Ubah nama kelompok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="g-counter">${doneN}/${total}</div>
+          <svg class="g-chevron${isOpen?' open':''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="g-progress">
+          <div class="pbar"><div class="pfill" style="width:${pct}%;background:${fill}"></div></div>
+          <span class="ppct">${pct}%</span>
+        </div>
+      </div>
+      <div class="task-list">
+        ${[...active,...done].map(t=>renderTask(t)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTask(t) {
+  const isExp = expandedTasks.has(t.id);
+  const hasFile = t.file && t.file.link;
+  return `<div class="task-item${isExp?' expanded':''}" data-task-id="${t.id}" onclick="toggleTask(${t.id},event)">
+    <div class="task-row">
+      <div class="task-chk${t.completed?' done':''}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+      </div>
+      <div class="task-name${t.completed?' done':''}">${t.text}</div>
+      ${hasFile?`<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px;flex-shrink:0;margin-top:3px" title="Dokumen terlampir"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`:''}
+    </div>
+    <div class="task-detail">
+      <div class="task-meta">
+        ${t.completed
+          ?`<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>Selesai oleh <strong style="color:var(--text)">${t.completedBy}</strong> &bull; ${fmtDate(t.completedAt)}`
+          :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Belum selesai`
+        }
+      </div>
+      ${hasFile
+        ?`<div class="file-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <span class="file-pill-name">${t.file.name}</span>
+            <div class="file-pill-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation();openFile('${t.file.link}')" title="Buka di Drive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+              ${!t.completed?`<button class="btn btn-danger btn-icon btn-sm" onclick="event.stopPropagation();removeFile(${t.id})" title="Hapus dokumen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>`:''}
+            </div>
+          </div>`
+        :!t.completed
+          ?`<div class="upload-area" onclick="event.stopPropagation()">
+              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" onchange="handleFileUpload(${t.id},this)">
+              <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+              <div><div class="upload-text">Upload dokumen</div><div class="upload-hint">PDF, Word, Excel, PPT, Gambar</div></div>
+            </div>
+            <div class="upload-progress" data-up-progress="${t.id}"><div class="upload-bar"></div></div>`
+          :''
+      }
+      <div class="task-acts">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();editTask(${t.id})" title="Edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();deleteTask(${t.id})" title="Hapus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+        ${!t.completed
+          ?`<button class="btn btn-primary btn-sm${hasFile?'':' '}" ${hasFile?'':'disabled'} onclick="event.stopPropagation();completeTask(${t.id})" style="margin-left:auto" title="${hasFile?'Tandai selesai':'Upload dokumen dulu'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>Selesai
+            </button>`
+          :`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();undoTask(${t.id})" style="margin-left:auto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h13M3 12l5 5M3 12l5-5"/></svg>Batalkan
+            </button>`
+        }
+      </div>
+    </div>
+  </div>`;
+}
+
+function removeFile(id) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  if(!confirm('Hapus dokumen yang terlampir?')) return;
+  t.file=null; saveToDrive(); renderAll();
+}
+function toggleGroup(l) {
+  if(expandedGroups.has(l)) expandedGroups.delete(l); else expandedGroups.add(l);
+  saveToDrive(); renderAll();
+}
+function toggleTask(id,e) {
+  if(e) e.stopPropagation();
+  if(expandedTasks.has(id)) expandedTasks.delete(id); else expandedTasks.add(id);
+  const el=document.querySelector(`[data-task-id="${id}"]`);
+  if(el) el.classList.toggle('expanded',expandedTasks.has(id));
+}
+
+// ─── REPOSITORY ────────────────────────────────────────────
+function renderRepo() {
+  const term=(document.getElementById('repoSearch').value||'').toLowerCase();
+  const uFilter=document.getElementById('repoUserFilter').value;
+  const done=tasks.filter(t=>t.completed&&t.file);
+  const filtered=done.filter(t=>{
+    if(uFilter!=='all'&&t.completedBy!==uFilter) return false;
+    if(term&&!(t.text.toLowerCase().includes(term)||levelName(t.level).toLowerCase().includes(term))) return false;
+    return true;
+  });
+  document.getElementById('repoSubtitle').textContent=`${filtered.length} dokumen ditemukan`;
+  populateDropdowns();
+  const byLevel={};
+  filtered.forEach(t=>{ (byLevel[t.level]=byLevel[t.level]||[]).push(t); });
+  const list=document.getElementById('repoList');
+  if(!filtered.length) { list.innerHTML='<div style="padding:36px;text-align:center;color:var(--text-3);font-size:13px">Belum ada dokumen selesai.</div>'; return; }
+  list.innerHTML=levelOrder().filter(l=>byLevel[l]).map(l=>{
+    const arr=byLevel[l].sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
+    return `<div><div class="prog-group-head"><span>${levelName(l)}</span><span>${arr.length} dokumen</span></div>
+      ${arr.map(t=>`<div class="prog-item">
+        <div><div class="prog-item-text">${t.text}</div><div class="prog-item-meta">Oleh ${t.completedBy} • ${fmtDate(t.completedAt)} • ${t.file?.name||''}</div></div>
+        <a href="${t.file?.link||'#'}" target="_blank" class="btn btn-secondary btn-sm btn-icon" title="Buka dokumen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function printRepo() {
+  const done=tasks.filter(t=>t.completed&&t.file); if(!done.length){notify('Belum ada data','warning');return;}
+  const byLevel={};done.forEach(t=>{(byLevel[t.level]=byLevel[t.level]||[]).push(t);});
+  let html=`<h2>Repositori Dokumen — Markaz Belajar</h2><p>Dicetak: ${new Date().toLocaleString('id-ID')}</p>`;
+  levelOrder().filter(l=>byLevel[l]).forEach(l=>{
+    html+=`<h3>${levelName(l)}</h3><table border="1" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f0f0f0"><th>#</th><th>Tugas</th><th>Dokumen</th><th>Tanggal</th><th>Pengerja</th></tr></thead>
+      <tbody>${byLevel[l].map((t,i)=>`<tr><td>${i+1}</td><td>${t.text}</td><td><a href="${t.file?.link}">${t.file?.name||'-'}</a></td><td>${fmtDate(t.completedAt)}</td><td>${t.completedBy}</td></tr>`).join('')}</tbody></table>`;
+  });
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Repositori</title><style>body{font-family:Arial;margin:20px}a{color:#1d4ed8}</style></head><body>${html}</body></html>`);
+  w.document.close();setTimeout(()=>w.print(),300);
+}
+
+function printReport() {
+  const done=tasks.filter(t=>t.completed); if(!done.length){notify('Belum ada tugas selesai','warning');return;}
+  const byLevel={};done.forEach(t=>{(byLevel[t.level]=byLevel[t.level]||[]).push(t);});
+  let html=`<div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px">
+    <h1 style="font-size:20px;margin:0">LAPORAN TUGAS — MARKAZ BELAJAR</h1>
+    <p style="color:#666;margin:4px 0 0">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
+  </div>`;
+  levelOrder().filter(l=>byLevel[l]).forEach(l=>{
+    html+=`<h3>${levelName(l)}</h3><table border="1" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f0f0f0"><th>#</th><th>Tugas</th><th>Dokumen</th><th>Tanggal</th><th>Pengerja</th></tr></thead>
+      <tbody>${byLevel[l].map((t,i)=>`<tr><td>${i+1}</td><td>${t.text}</td><td>${t.file?`<a href="${t.file.link}">${t.file.name}</a>`:'-'}</td><td>${fmtDate(t.completedAt)}</td><td>${t.completedBy||'-'}</td></tr>`).join('')}</tbody></table>`;
+  });
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Laporan</title><style>body{font-family:Arial;margin:20px}a{color:#1d4ed8}</style></head><body>${html}</body></html>`);
+  w.document.close();setTimeout(()=>w.print(),300);
+}
+
+// ─── PANEL ─────────────────────────────────────────────────
+let panelOpen = false;
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('slidePanel').classList.toggle('open', panelOpen);
+  document.getElementById('addTaskBtn').classList.toggle('active', panelOpen);
+  document.getElementById('mainContent').classList.toggle('shifted', panelOpen);
+  document.getElementById('panelTrigger').style.left = panelOpen ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-w'))+'px') : '0';
+}
+
+// ─── UTILS ─────────────────────────────────────────────────
+function fmtDate(d) {
+  if(!d) return '–';
+  try{ return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'});}catch{return '–';}
+}
+function openModal(id){document.getElementById(id).style.display='flex';document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).style.display='none';document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id)}));
+
+let toastT;
+function notify(msg,type='info'){
+  const ex=document.querySelector('.toast');if(ex)ex.remove();
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<div class="toast-dot"></div>${msg}`;
+  document.body.appendChild(el);clearTimeout(toastT);toastT=setTimeout(()=>el.remove(),2800);
+}
+
+function showApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+}
+function updateUserUI(){
+  if(!currentUser) return;
+  document.getElementById('uName').textContent=currentUser.name.split(' ')[0];
+  document.getElementById('uAvatar').textContent=currentUser.name.charAt(0).toUpperCase();
+}
+
+// ─── IDLE ──────────────────────────────────────────────────
+let idleT;
+function resetIdle(){
+  clearTimeout(idleT);
+  idleT=setTimeout(async()=>{
+    if(accessToken) await saveToDrive();
+  }, 2*60*1000);
+}
+['click','keypress','scroll'].forEach(e=>document.addEventListener(e,resetIdle));
+</script>
+
+<!-- Google APIs -->
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
